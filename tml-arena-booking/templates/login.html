@@ -1,221 +1,100 @@
+<!-- login.html simplified tweaks: add aria labels and ensure submit btn class -->
 {% extends "base.html" %}
-{% block title %}Masuk / Daftar Member - TML Arena{% endblock %}
+
+{% block title %}Masuk - TML Arena{% endblock %}
 
 {% block content %}
 <section class="auth-wrapper">
-    <div class="auth-card">
-        <div class="auth-sidebar">
-            <div class="sidebar-glow"></div>
-            <div class="sidebar-content">
-                <div class="sidebar-label">TML Arena</div>
-                <h1 class="sidebar-title">Welcome to TML Arena</h1>
-                <p class="sidebar-copy">Masuk dengan email atau username. Atau buat akun baru dan langsung mulai akses event dan membership.</p>
-                <div class="sidebar-tags">
-                    <span>Menu For</span>
-                    <span>TML Arena</span>
-                    <span>Fast Access</span>
-                </div>
-                <button id="modeSwitch" class="btn neon-btn">Daftar Sekarang</button>
-            </div>
+  <div class="auth-card card">
+    <aside class="auth-sidebar">
+      <div class="sidebar-content">
+        <div class="sidebar-label">Selamat datang</div>
+        <h2 class="sidebar-title">Masuk ke TML Arena</h2>
+        <p class="sidebar-copy muted">Kelola booking, membership, dan absensi lapangan futsal Anda dengan mudah.</p>
+      </div>
+      <div class="sidebar-glow" aria-hidden="true"></div>
+    </aside>
+
+    <div class="auth-main">
+      <div class="auth-tabs">
+        <button class="auth-tab active" aria-selected="true">Masuk</button>
+        <button class="auth-tab">Daftar</button>
+      </div>
+
+      <div class="auth-panels">
+        <div class="auth-panel active" id="panel-login">
+          <h2>Masuk</h2>
+          <p class="muted">Gunakan email dan password Anda.</p>
+          <form action="{{ url_for('login') }}" method="post" autocomplete="on">
+            <label>
+              <span>Email</span>
+              <input type="text" name="username" placeholder="email Anda" aria-label="Email" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input type="password" name="password" placeholder="kata sandi" aria-label="Password" required />
+            </label>
+            <button type="submit" class="btn full">Masuk</button>
+          </form>
         </div>
 
-        <div class="auth-main">
-            <div class="auth-tabs">
-                <button type="button" class="auth-tab active" data-target="login-panel">Masuk</button>
-                <button type="button" class="auth-tab" data-target="register-panel">Daftar</button>
+        <div class="auth-panel" id="panel-register">
+          <h2>Daftar</h2>
+          <p class="muted">Buat akun baru untuk memesan lapangan.</p>
+          <form action="{{ url_for('register') }}" method="post">
+            <div class="grid-two">
+              <label>
+                <span>Nama Tim</span>
+                <input name="team_name" placeholder="Nama tim / Anda" aria-label="Nama tim" required />
+              </label>
+              <label>
+                <span>Tipe Tim</span>
+                <input name="team_type" placeholder="Contoh: club / casual" aria-label="Tipe tim" required />
+              </label>
             </div>
-
-            <div class="auth-panels">
-                <div id="login-panel" class="auth-panel">
-                    <h2>Masuk ke Portal</h2>
-                    <p class="muted">Gunakan username admin atau email member untuk login.</p>
-                    <form id="loginForm" method="post" novalidate>
-                        <label for="login-username">Username / Email
-                            <input id="login-username" type="text" name="username" placeholder="admin atau team@domain.com" required aria-required="true" />
-                            <span class="error-message" data-for="username"></span>
-                        </label>
-                        <label for="login-password">Kata Sandi
-                            <div class="input-with-icon">
-                                <input id="login-password" type="password" name="password" placeholder="••••••••" required aria-required="true" />
-                                <button type="button" class="pw-toggle" aria-label="Toggle password visibility">👁</button>
-                            </div>
-                            <span class="error-message" data-for="password"></span>
-                        </label>
-                        <div class="auth-row">
-                            <label class="inline">
-                                <input type="checkbox" name="remember" value="1" /> Ingat saya
-                            </label>
-                            <a class="muted" href="#">Lupa password?</a>
-                        </div>
-                        <button type="submit" class="btn full">Masuk</button>
-                    </form>
-                </div>
-
-                <div id="register-panel" class="auth-panel">
-                    <h2>Daftar sebagai Member</h2>
-                    <p class="muted">Daftar menggunakan email, tanpa memasukkan username terpisah.</p>
-                    <form id="registerForm" method="post" action="{{ url_for('register') }}" novalidate>
-                        <div class="grid-two">
-                            <label for="reg-team_name">Nama Tim / Organisasi
-                                <input id="reg-team_name" type="text" name="team_name" placeholder="Contoh: Tim Alpha" required aria-required="true" />
-                                <span class="error-message" data-for="team_name"></span>
-                            </label>
-                            <label for="reg-team_type">Jenis Tim
-                                <select id="reg-team_type" name="team_type" required aria-required="true">
-                                    <option value="">Pilih jenis</option>
-                                    <option value="organizer">Organizer</option>
-                                    <option value="sponsor">Sponsor</option>
-                                    <option value="vendor">Vendor</option>
-                                    <option value="lainnya">Lainnya</option>
-                                </select>
-                                <span class="error-message" data-for="team_type"></span>
-                            </label>
-                        </div>
-                        <label for="reg-email">Email Resmi Tim
-                            <input id="reg-email" type="email" name="email" placeholder="team@domain.com" required aria-required="true" />
-                            <span class="error-message" data-for="email"></span>
-                        </label>
-                        <label for="reg-pic">Nama PIC
-                            <input id="reg-pic" type="text" name="pic_name" placeholder="Nama Lengkap" required aria-required="true" />
-                            <span class="error-message" data-for="pic_name"></span>
-                        </label>
-                        <label for="reg-phone">Nomor Telepon / WA
-                            <input id="reg-phone" type="tel" name="phone" placeholder="08xxxxxxxxxx" required aria-required="true" />
-                            <span class="error-message" data-for="phone"></span>
-                        </label>
-                        <div class="grid-two">
-                            <label for="reg-password">Password
-                                <div class="input-with-icon">
-                                    <input id="reg-password" type="password" name="password" placeholder="Minimal 8 karakter" required aria-required="true" />
-                                    <button type="button" class="pw-toggle" aria-label="Toggle password visibility">👁</button>
-                                </div>
-                                <span class="error-message" data-for="password"></span>
-                            </label>
-                            <label for="reg-password_confirm">Konfirmasi Password
-                                <div class="input-with-icon">
-                                    <input id="reg-password_confirm" type="password" name="password_confirm" placeholder="Ulangi password" required aria-required="true" />
-                                    <button type="button" class="pw-toggle" aria-label="Toggle password visibility">👁</button>
-                                </div>
-                                <span class="error-message" data-for="password_confirm"></span>
-                            </label>
-                        </div>
-                        <label class="inline">
-                            <input type="checkbox" id="reg-agree" name="agree" required aria-required="true" /> <span for="reg-agree">Saya menyetujui syarat & ketentuan</span>
-                            <span class="error-message" data-for="agree"></span>
-                        </label>
-                        <button type="submit" class="btn full outline">Kirim Pendaftaran</button>
-                    </form>
-                </div>
+            <label>
+              <span>Email</span>
+              <input type="email" name="email" placeholder="email@contoh.com" aria-label="Email" required />
+            </label>
+            <div class="grid-two">
+              <label>
+                <span>PIC</span>
+                <input name="pic_name" placeholder="Nama penanggung jawab" aria-label="PIC" required />
+              </label>
+              <label>
+                <span>Telepon</span>
+                <input name="phone" placeholder="08xx..." aria-label="Telepon" required />
+              </label>
             </div>
+            <div class="grid-two">
+              <label>
+                <span>Password</span>
+                <input type="password" name="password" aria-label="Password" required />
+              </label>
+              <label>
+                <span>Konfirmasi Password</span>
+                <input type="password" name="password_confirm" aria-label="Konfirmasi Password" required />
+              </label>
+            </div>
+            <button type="submit" class="btn full">Daftar</button>
+          </form>
         </div>
+      </div>
     </div>
+  </div>
 </section>
+
 <script>
-// UI helpers
-const tabButtons = document.querySelectorAll('.auth-tab');
-const panels = document.querySelectorAll('.auth-panel');
-const sidebarTitle = document.querySelector('.sidebar-title');
-const sidebarCopy = document.querySelector('.sidebar-copy');
-const modeSwitch = document.querySelector('#modeSwitch');
-
-function clearErrors(form) {
-    form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-    form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-}
-
-function showError(form, name, msg) {
-    const el = form.querySelector('.error-message[data-for="' + name + '"]');
-    if (el) el.textContent = msg;
-    const input = form.querySelector('[name="' + name + '"]');
-    if (input) input.classList.add('input-error');
-}
-
-function switchPanel(target) {
-    tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === target));
-    panels.forEach(panel => panel.classList.toggle('active', panel.id === target));
-
-    const loginMode = target === 'login-panel';
-    sidebarTitle.textContent = loginMode ? 'Welcome to TML Arena' : 'Activate the TML Network';
-    sidebarCopy.textContent = loginMode
-        ? 'Masuk dengan email atau username. Atau buat akun baru dan langsung mulai akses event dan membership.'
-        : 'Buat akun baru untuk mengelola membership, scan QR, dan lihat statistik event secara real time.';
-    modeSwitch.textContent = loginMode ? 'Daftar Sekarang' : 'Sudah punya akun?';
-    modeSwitch.dataset.target = loginMode ? 'register-panel' : 'login-panel';
-
-    // focus first input
-    const panel = document.getElementById(target);
-    if (panel) {
-        const first = panel.querySelector('input, select, textarea');
-        if (first) first.focus();
-    }
-}
-
-switchPanel('login-panel');
-
-tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => switchPanel(btn.dataset.target));
-});
-
-modeSwitch.addEventListener('click', () => {
-    switchPanel(modeSwitch.dataset.target || 'register-panel');
-});
-
-// Password toggle
-document.querySelectorAll('.pw-toggle').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const wrapper = e.target.closest('.input-with-icon');
-        if (!wrapper) return;
-        const input = wrapper.querySelector('input');
-        if (!input) return;
-        input.type = input.type === 'password' ? 'text' : 'password';
-    });
-});
-
-// Client-side validation
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-
-if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-        clearErrors(loginForm);
-        let ok = true;
-        const u = loginForm.username.value.trim();
-        const p = loginForm.password.value;
-        if (!u) { showError(loginForm, 'username', 'Username/email diperlukan'); ok = false; }
-        if (!p) { showError(loginForm, 'password', 'Password diperlukan'); ok = false; }
-        if (!ok) e.preventDefault();
-    });
-}
-
-if (registerForm) {
-    registerForm.addEventListener('submit', (e) => {
-        clearErrors(registerForm);
-        let ok = true;
-        const data = ['team_name','team_type','email','pic_name','phone','password','password_confirm','agree'];
-        data.forEach(name => {
-            const el = registerForm.elements[name];
-            if (!el) return;
-            if (name === 'agree') {
-                if (!el.checked) { showError(registerForm, name, 'Anda harus menyetujui syarat'); ok = false; }
-                return;
-            }
-            const val = el.value.trim();
-            if (!val) { showError(registerForm, name, 'Field ini wajib diisi'); ok = false; }
-        });
-
-        // email simple check
-        const email = registerForm.email.value.trim();
-        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { showError(registerForm, 'email', 'Format email tidak valid'); ok = false; }
-
-        // password rules
-        const pw = registerForm.password.value;
-        const pwc = registerForm.password_confirm.value;
-        if (pw && pw.length < 8) { showError(registerForm, 'password', 'Password minimal 8 karakter'); ok = false; }
-        if (pw && pwc && pw !== pwc) { showError(registerForm, 'password_confirm', 'Password tidak cocok'); ok = false; }
-
-        if (!ok) e.preventDefault();
-    });
-}
-
+// simple tab toggles for auth panels
+(function(){
+  const tabs = document.querySelectorAll('.auth-tab');
+  const panels = document.querySelectorAll('.auth-panel');
+  tabs.forEach((t, idx) => t.addEventListener('click', () => {
+    tabs.forEach(x=>x.classList.remove('active'));
+    panels.forEach(p=>p.classList.remove('active'));
+    t.classList.add('active');
+    panels[idx].classList.add('active');
+  }));
+})();
 </script>
 {% endblock %}
