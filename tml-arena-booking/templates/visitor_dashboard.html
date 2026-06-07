@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Visitor - TML Arena{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+    <div>
+        <p class="eyebrow">Visitor</p>
+        <h1>Selamat datang, {{ current_user.username }}</h1>
+        <p class="muted">Pesan lapangan sendiri dan cek jadwal yang kosong tanpa campur tangan admin.</p>
+        <p class="muted">Waktu sekarang: {{ current_time }}</p>
+    </div>
+    <div class="summary-cards">
+        <article class="metric-card user-metric simple">
+            <p class="eyebrow">Total Booking</p>
+            <h3>{{ total_bookings }}</h3>
+            <small>{{ booking_counts.pending }} pending • {{ booking_counts.approved }} approved</small>
+        </article>
+        <article class="metric-card user-metric alert">
+            <p class="eyebrow">Booking Selanjutnya</p>
+            {% if next_booking %}
+                <h3>{{ next_booking.play_date.strftime('%d %b') }}</h3>
+                <small>{{ next_booking.start_time.strftime('%H:%M') }} - {{ next_booking.end_time.strftime('%H:%M') }}</small>
+            {% else %}
+                <h3>-</h3>
+                <small>Belum ada jadwal</small>
+            {% endif %}
+        </article>
+        <article class="metric-card user-metric warning">
+            <p class="eyebrow">Status Visitor</p>
+            <h3>Belum member</h3>
+            <small>Anda dapat upgrade ke membership kapan saja.</small>
+        </article>
+    </div>
+</section>
+
+<section class="user-dashboard-grid">
+    <article class="panel-card">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Per Visit</p>
+                <h2>Pesan Lapangan sebagai Visitor</h2>
+            </div>
+            <span class="pill">Order sendiri</span>
+        </div>
+        <form method="post" action="{{ url_for('create_booking') }}" class="grid-form user-form">
+            <input type="hidden" name="booking_type" value="per_visit" />
+            <label>Nama Pemesan
+                <input type="text" name="customer_name" required placeholder="Nama tim atau kontak" />
+            </label>
+            <label>Nomor WA / Telepon
+                <input type="text" name="phone" required placeholder="0812xxxxxxx" />
+            </label>
+            <div class="grid-two">
+                <label>Tanggal Main
+                    <input type="date" name="play_date" required />
+                </label>
+                <label>Jam Mulai
+                    <input type="time" name="start_time" required />
+                </label>
+            </div>
+            <div class="grid-two">
+                <label>Jam Selesai
+                    <input type="time" name="end_time" required />
+                </label>
+                <label>Catatan
+                    <textarea name="notes" rows="3" placeholder="Catatan tambahan (opsional)"></textarea>
+                </label>
+            </div>
+            <div class="selected-date-notice">
+                <p>Kalender di bawah bisa digunakan untuk memilih tanggal cepat.</p>
+                <p><strong>Tanggal terpilih:</strong> <span id="selectedDate">-</span></p>
+            </div>
+            <button type="submit" class="btn full">Kirim Permintaan</button>
+        </form>
+    </article>
+
+    <article class="panel-card panel-membership">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Upgrade Membership</p>
+                <h2>Dapatkan akses member</h2>
+            </div>
+        </div>
+        <p class="muted">Lebih murah, lebih fleksibel, dan dapat slot tetap. Pilih paket membership jika ingin pengalaman booking tanpa batasan visitor.</p>
+        <form method="post" action="{{ url_for('user_purchase_membership') }}" class="grid-form user-form">
+            <label>Pilih Paket Bulanan
+                <select name="package_name" id="user_package_select" required onchange="calculatePrice()">
+                    <option value="">-- Pilih Paket --</option>
+                    <option value="Bronze Member (1x Seminggu)" data-price="400000">Bronze Member — Rp 400.000</option>
+                    <option value="Silver Member (2x Seminggu)" data-price="750000">Silver Member — Rp 750.000</option>
+                    <option value="Gold Member (3x Seminggu)" data-price="1000000">Gold Member — Rp 1.000.000</option>
+                </select>
+            </label>
+            <input type="hidden" name="price" id="package_price_input" value="0" />
+            <div class="price-box">
+                <p>Total tagihan</p>
+                <h3 id="price_display">Rp 0</h3>
+            </div>
+            <button type="submit" class="btn full">Aktifkan Membership</button>
+        </form>
+    </article>
+</section>
+
+<section class="calendar-card card">
+    <div class="calendar-header">
+        <div>
+            <p class="eyebrow">Jadwal Lapangan</p>
+            <h2>{{ month_label }}</h2>
+        </div>
+        <span class="badge">Ready vs Booked</span>
+    </div>
+    <div class="calendar-month-grid">
+        <div class="calendar-weekday">Sen</div>
+        <div class="calendar-weekday">Sel</div>
+        <div class="calendar-weekday">Rab</div>
+        <div class="calendar-weekday">Kam</div>
+        <div class="calendar-weekday">Jum</div>
+        <div class="calendar-weekday">Sab</div>
+        <div class="calendar-weekday">Min</div>
+
+        {% for week in month_calendar %}
+            {% for day in week %}
+                <div class="calendar-cell {% if not day.is_current_month %}muted{% else %}clickable{% endif %} {% if day.is_today %}today{% endif %}" data-date="{{ day.date.isoformat() }}">
+                    <div class="calendar-cell-header">
+                        <span class="cell-number">{{ day.day_number }}</span>
+                        {% if day.booking_count %}
+                            <span class="cell-count">{{ day.booking_count }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="calendar-cell-body">
+                        {% if day.booking_count %}
+                            {% for booking in day.bookings[:2] %}
+                                <span class="cell-dot {{ booking.status }}" title="{{ booking.status|title }}"></span>
+                            {% endfor %}
+                            {% if day.booking_count > 2 %}
+                                <small>+{{ day.booking_count - 2 }}</small>
+                            {% endif %}
+                            <small class="muted">Booked</small>
+                        {% else %}
+                            <small class="muted">Ready</small>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    <div class="calendar-legend">
+        <span class="pill small success">Ready</span>
+        <span class="pill small pending">Pending</span>
+        <span class="pill small done">Approved</span>
+        <span class="pill small rejected">Rejected</span>
+    </div>
+</section>
+
+<section class="card booking-panel">
+    <div class="panel-heading panel-space">
+        <div>
+            <p class="eyebrow">Riwayat Booking</p>
+            <h2>Booking Saya</h2>
+        </div>
+        <div class="status-summary">
+            <span class="pill small pending">Pending {{ booking_counts.pending }}</span>
+            <span class="pill small approved">Approved {{ booking_counts.approved }}</span>
+            <span class="pill small done">Done {{ booking_counts.done }}</span>
+        </div>
+    </div>
+    <ul class="timeline booking-timeline">
+        {% if bookings %}
+            {% for booking in bookings %}
+                <li class="booking-item">
+                    <div class="booking-meta">
+                        <strong>{{ booking.play_date.strftime('%d %b %Y') }}</strong>
+                        <span>{{ booking.start_time.strftime('%H:%M') }} - {{ booking.end_time.strftime('%H:%M') }}</span>
+                    </div>
+                    <div>
+                        <p>{{ booking.customer_name }} • {{ booking.phone }}</p>
+                        {% if booking.notes %}<small>{{ booking.notes }}</small>{% endif %}
+                    </div>
+                    <span class="status {{ booking.status }}">{{ booking.status|title }}</span>
+                </li>
+            {% endfor %}
+        {% else %}
+            <li class="empty">Belum ada booking. Silakan pesan lapangan terlebih dahulu.</li>
+        {% endif %}
+    </ul>
+</section>
+
+<script>
+function calculatePrice() {
+    const select = document.getElementById('user_package_select');
+    if (!select) return;
+    const selectedOption = select.options[select.selectedIndex];
+    const price = selectedOption.getAttribute('data-price') || 0;
+    document.getElementById('package_price_input').value = price;
+    const idrFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+    document.getElementById('price_display').textContent = idrFormatter.format(price);
+}
+
+function selectDateFromCalendar(element) {
+    const date = element.dataset.date;
+    if (!date) return;
+    document.querySelectorAll('.calendar-cell.selected').forEach(cell => cell.classList.remove('selected'));
+    element.classList.add('selected');
+    const dateInput = document.querySelector('input[name="play_date"]');
+    if (dateInput) {
+        dateInput.value = date;
+    }
+    const selectedLabel = document.getElementById('selectedDate');
+    if (selectedLabel) {
+        selectedLabel.textContent = new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+}
+
+const dateCells = document.querySelectorAll('.calendar-cell.clickable');
+dateCells.forEach(cell => {
+    cell.addEventListener('click', () => selectDateFromCalendar(cell));
+});
+</script>
+{% endblock %}

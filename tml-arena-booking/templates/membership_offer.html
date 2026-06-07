@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Membership Berbayar - TML Arena{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+    <div>
+        <p class="eyebrow">Membership</p>
+        <h1>Pilih Paket Membership</h1>
+        <p class="muted">Aktifkan paket berbayar untuk mendapatkan akses member dan booking lebih mudah.</p>
+    </div>
+</section>
+
+<section class="card membership-offer-card">
+    <form method="post" action="{{ url_for('user_purchase_membership') }}" class="grid-form user-form">
+        <label>Pilih Paket Bulanan
+            <select name="package_name" id="user_package_select" required onchange="calculatePrice()">
+                <option value="">-- Pilih Paket --</option>
+                <option value="Bronze Member (1x Seminggu)" data-price="400000">Bronze Member — Rp 400.000</option>
+                <option value="Silver Member (2x Seminggu)" data-price="750000">Silver Member — Rp 750.000</option>
+                <option value="Gold Member (3x Seminggu)" data-price="1000000">Gold Member — Rp 1.000.000</option>
+            </select>
+        </label>
+        <input type="hidden" name="price" id="package_price_input" value="0" />
+        <div class="price-box">
+            <p>Total tagihan</p>
+            <h3 id="price_display">Rp 0</h3>
+        </div>
+        <button type="submit" class="btn full">Aktifkan Membership</button>
+        <a href="{{ url_for('visitor_dashboard') }}" class="btn outline full">Kembali ke Visitor</a>
+    </form>
+</section>
+
+<script>
+function calculatePrice() {
+    const select = document.getElementById('user_package_select');
+    if (!select) return;
+    const selectedOption = select.options[select.selectedIndex];
+    const price = selectedOption.getAttribute('data-price') || 0;
+    document.getElementById('package_price_input').value = price;
+    const idrFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+    document.getElementById('price_display').textContent = idrFormatter.format(price);
+}
+</script>
+{% endblock %}

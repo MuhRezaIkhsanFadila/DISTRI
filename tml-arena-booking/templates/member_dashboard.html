@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Member - TML Arena{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+    <div>
+        <p class="eyebrow">Member</p>
+        <h1>Halo, {{ current_user.username }}</h1>
+        <p class="muted">Kelola membership dan booking Anda dari dashboard member khusus.</p>
+        <p class="muted">Waktu sekarang: {{ current_time }}</p>
+    </div>
+    <div class="summary-cards">
+        <article class="metric-card user-metric simple">
+            <p class="eyebrow">Total Booking</p>
+            <h3>{{ total_bookings }}</h3>
+            <small>{{ booking_counts.pending }} pending • {{ booking_counts.approved }} approved</small>
+        </article>
+        <article class="metric-card user-metric success">
+            <p class="eyebrow">Sisa Membership</p>
+            <h3>{{ days_left }} hari</h3>
+            <small>Berakhir {{ membership.end_date.strftime('%d %b %Y') }}</small>
+        </article>
+        <article class="metric-card user-metric alert">
+            <p class="eyebrow">Booking Selanjutnya</p>
+            {% if next_booking %}
+                <h3>{{ next_booking.play_date.strftime('%d %b') }}</h3>
+                <small>{{ next_booking.start_time.strftime('%H:%M') }} - {{ next_booking.end_time.strftime('%H:%M') }}</small>
+            {% else %}
+                <h3>-</h3>
+                <small>Belum ada jadwal</small>
+            {% endif %}
+        </article>
+    </div>
+</section>
+
+<section class="user-dashboard-grid">
+    <article class="panel-card">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Per Visit</p>
+                <h2>Pesan Lapangan</h2>
+            </div>
+            <span class="pill">Member+</span>
+        </div>
+        <form method="post" action="{{ url_for('create_booking') }}" class="grid-form user-form">
+            <input type="hidden" name="booking_type" value="per_visit" />
+            <label>Nama Pemesan
+                <input type="text" name="customer_name" required placeholder="Nama tim atau kontak" />
+            </label>
+            <label>Nomor WA / Telepon
+                <input type="text" name="phone" required placeholder="0812xxxxxxx" />
+            </label>
+            <div class="grid-two">
+                <label>Tanggal Main
+                    <input type="date" name="play_date" required />
+                </label>
+                <label>Jam Mulai
+                    <input type="time" name="start_time" required />
+                </label>
+            </div>
+            <div class="grid-two">
+                <label>Jam Selesai
+                    <input type="time" name="end_time" required />
+                </label>
+                <label>Catatan
+                    <textarea name="notes" rows="3" placeholder="Catatan tambahan (opsional)"></textarea>
+                </label>
+            </div>
+            <div class="selected-date-notice">
+                <p>Kalender membantu Anda memilih tanggal dengan cepat.</p>
+                <p><strong>Tanggal terpilih:</strong> <span id="selectedDate">-</span></p>
+            </div>
+            <button type="submit" class="btn full">Kirim Permintaan</button>
+        </form>
+    </article>
+
+    <article class="panel-card panel-membership">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Membership Aktif</p>
+                <h2>{{ membership.package_name }}</h2>
+            </div>
+        </div>
+        <div class="membership-card">
+            <div class="membership-details">
+                <span class="status approved">{{ membership.status|title }}</span>
+                <h3>{{ membership.package_name }}</h3>
+                <p>Aktif sampai {{ membership.end_date.strftime('%d %b %Y') }}</p>
+            </div>
+            <div class="membership-qr">
+                <img src="{{ url_for('static', filename='qrs/' + membership.qr_filename()) }}" alt="QR Member" />
+            </div>
+        </div>
+        <a href="{{ url_for('membership_verify', token=membership.token) }}" target="_blank" class="btn outline full">Lihat QR Code</a>
+    </article>
+</section>
+
+<section class="card chat-card">
+    <header class="card-header">
+        <div>
+            <p class="eyebrow">Room Chat</p>
+            <h2>Chat dengan Admin</h2>
+        </div>
+        <span class="badge">Pesan langsung</span>
+    </header>
+    <div class="chat-grid">
+        <div class="chat-list">
+            <div id="memberChatMessages" class="chat-messages">
+                {% if chat_messages %}
+                    {% for msg in chat_messages %}
+                        <div class="chat-item {{ msg.sender_role }}">
+                            <div class="chat-meta">
+                                <strong>{% if msg.sender_role == 'admin' %}Admin{% else %}Anda{% endif %}</strong>
+                                <small>{{ msg.created_at.strftime('%d %b %H:%M') }}</small>
+                            </div>
+                            <p>{{ msg.content }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">Belum ada pesan chat.</div>
+                {% endif %}
+            </div>
+        </div>
+        <form id="memberChatForm" class="chat-form">
+            <label>Pesan ke Admin
+                <textarea id="memberChatContent" name="content" rows="4" required placeholder="Tulis pesan untuk admin..."></textarea>
+            </label>
+            <button type="submit" class="btn full">Kirim Chat</button>
+        </form>
+    </div>
+</section>
+
+<section class="calendar-card card">
+    <div class="calendar-header">
+        <div>
+            <p class="eyebrow">Jadwal Lapangan</p>
+            <h2>{{ month_label }}</h2>
+        </div>
+        <span class="badge">Ready vs Booked</span>
+    </div>
+    <div class="calendar-month-grid">
+        <div class="calendar-weekday">Sen</div>
+        <div class="calendar-weekday">Sel</div>
+        <div class="calendar-weekday">Rab</div>
+        <div class="calendar-weekday">Kam</div>
+        <div class="calendar-weekday">Jum</div>
+        <div class="calendar-weekday">Sab</div>
+        <div class="calendar-weekday">Min</div>
+
+        {% for week in month_calendar %}
+            {% for day in week %}
+                <div class="calendar-cell {% if not day.is_current_month %}muted{% else %}clickable{% endif %} {% if day.is_today %}today{% endif %}" data-date="{{ day.date.isoformat() }}">
+                    <div class="calendar-cell-header">
+                        <span class="cell-number">{{ day.day_number }}</span>
+                        {% if day.booking_count %}
+                            <span class="cell-count">{{ day.booking_count }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="calendar-cell-body">
+                        {% if day.booking_count %}
+                            {% for booking in day.bookings[:2] %}
+                                <span class="cell-dot {{ booking.status }}" title="{{ booking.status|title }}"></span>
+                            {% endfor %}
+                            {% if day.booking_count > 2 %}
+                                <small>+{{ day.booking_count - 2 }}</small>
+                            {% endif %}
+                            <small class="muted">Booked</small>
+                        {% else %}
+                            <small class="muted">Ready</small>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    <div class="calendar-legend">
+        <span class="pill small success">Ready</span>
+        <span class="pill small pending">Pending</span>
+        <span class="pill small done">Approved</span>
+        <span class="pill small rejected">Rejected</span>
+    </div>
+</section>
+
+<section class="card booking-panel">
+    <div class="panel-heading panel-space">
+        <div>
+            <p class="eyebrow">Riwayat Booking</p>
+            <h2>Booking Saya</h2>
+        </div>
+        <div class="status-summary">
+            <span class="pill small pending">Pending {{ booking_counts.pending }}</span>
+            <span class="pill small approved">Approved {{ booking_counts.approved }}</span>
+            <span class="pill small done">Done {{ booking_counts.done }}</span>
+        </div>
+    </div>
+    <ul class="timeline booking-timeline">
+        {% if bookings %}
+            {% for booking in bookings %}
+                <li class="booking-item">
+                    <div class="booking-meta">
+                        <strong>{{ booking.play_date.strftime('%d %b %Y') }}</strong>
+                        <span>{{ booking.start_time.strftime('%H:%M') }} - {{ booking.end_time.strftime('%H:%M') }}</span>
+                    </div>
+                    <div>
+                        <p>{{ booking.customer_name }} • {{ booking.phone }}</p>
+                        {% if booking.notes %}<small>{{ booking.notes }}</small>{% endif %}
+                    </div>
+                    <span class="status {{ booking.status }}">{{ booking.status|title }}</span>
+                </li>
+            {% endfor %}
+        {% else %}
+            <li class="empty">Belum ada booking. Silakan pesan lapangan terlebih dahulu.</li>
+        {% endif %}
+    </ul>
+</section>
+
+<script>
+function calculatePrice() {
+    const select = document.getElementById('user_package_select');
+    if (!select) return;
+    const selectedOption = select.options[select.selectedIndex];
+    const price = selectedOption.getAttribute('data-price') || 0;
+    document.getElementById('package_price_input').value = price;
+    const idrFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+    document.getElementById('price_display').textContent = idrFormatter.format(price);
+}
+
+function selectDateFromCalendar(element) {
+    const date = element.dataset.date;
+    if (!date) return;
+    document.querySelectorAll('.calendar-cell.selected').forEach(cell => cell.classList.remove('selected'));
+    element.classList.add('selected');
+    const dateInput = document.querySelector('input[name="play_date"]');
+    if (dateInput) {
+        dateInput.value = date;
+    }
+    const selectedLabel = document.getElementById('selectedDate');
+    if (selectedLabel) {
+        selectedLabel.textContent = new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+}
+
+const dateCells = document.querySelectorAll('.calendar-cell.clickable');
+dateCells.forEach(cell => {
+    cell.addEventListener('click', () => selectDateFromCalendar(cell));
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const memberChatForm = document.getElementById('memberChatForm');
+    const memberChatContent = document.getElementById('memberChatContent');
+    const memberChatMessages = document.getElementById('memberChatMessages');
+
+    function renderMessages(messages) {
+        if (!memberChatMessages) return;
+        if (!messages.length) {
+            memberChatMessages.innerHTML = '<div class="empty">Belum ada pesan chat.</div>';
+            return;
+        }
+
+        memberChatMessages.innerHTML = '';
+
+        if (!messages.length) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty';
+            emptyState.textContent = 'Belum ada pesan chat.';
+            memberChatMessages.appendChild(emptyState);
+            return;
+        }
+
+        messages.forEach(msg => {
+            const item = document.createElement('div');
+            item.className = `chat-item ${msg.sender_role}`;
+
+            const meta = document.createElement('div');
+            meta.className = 'chat-meta';
+
+            const strong = document.createElement('strong');
+            strong.textContent = msg.sender_name;
+            const small = document.createElement('small');
+            small.textContent = msg.created_at;
+
+            meta.appendChild(strong);
+            meta.appendChild(small);
+
+            const content = document.createElement('p');
+            content.textContent = msg.content;
+
+            item.appendChild(meta);
+            item.appendChild(content);
+            memberChatMessages.appendChild(item);
+        });
+        memberChatMessages.scrollTop = memberChatMessages.scrollHeight;
+    }
+
+    async function fetchChatMessages() {
+        try {
+            const response = await fetch('/api/chat/messages');
+            if (!response.ok) {
+                throw new Error('Gagal memuat pesan chat.');
+            }
+            const data = await response.json();
+            renderMessages(data.messages || []);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function sendChatMessage(event) {
+        event.preventDefault();
+        if (!memberChatForm || !memberChatContent) return;
+
+        const content = memberChatContent.value.trim();
+        if (!content) return;
+
+        try {
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content }),
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                memberChatContent.value = '';
+                await fetchChatMessages();
+            } else {
+                console.error(data.message || 'Gagal mengirim pesan.');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    if (memberChatForm) {
+        memberChatForm.addEventListener('submit', sendChatMessage);
+    }
+
+    fetchChatMessages();
+    setInterval(fetchChatMessages, 3000);
+});
+</script>
+{% endblock %}

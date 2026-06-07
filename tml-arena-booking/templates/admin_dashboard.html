@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}Admin - TML Arena{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero card">
+    <div class="hero-copy">
+        <p class="eyebrow">Admin Dashboard</p>
+        <h1>Kontrol pusat operasional TML Arena</h1>
+        <p>Kelola booking, membership, dan check-in dalam satu layar dengan tampilan yang mudah dibaca dan responsif.</p>
+        <p class="muted">Waktu sekarang: {{ current_time }}</p>
+    </div>
+    <div class="hero-actions">
+        <a href="{{ url_for('admin_memberships') }}" class="btn outline">Kelola Membership</a>
+        <a href="{{ url_for('admin_scan') }}" class="btn">Scan QR</a>
+    </div>
+</section>
+
+<section class="card">
+    <header class="card-header">
+        <div>
+            <p class="eyebrow">Ringkasan</p>
+            <h2>Status Operasional</h2>
+        </div>
+        <div class="badge">{{ bookings|length }} booking berjalan</div>
+    </header>
+
+    <div class="stats-grid">
+        <div class="metric-card metric-primary">
+            <p class="eyebrow">Agenda</p>
+            <h3>{{ upcoming_bookings }}</h3>
+            <p>Booking hari ini dan mendatang.</p>
+        </div>
+        <div class="metric-card metric-info">
+            <p class="eyebrow">Hari ini</p>
+            <h3>{{ bookings_today }}</h3>
+            <p>Jumlah booking yang terjadi hari ini.</p>
+        </div>
+        <div class="metric-card metric-warning">
+            <p class="eyebrow">Menunggu</p>
+            <h3>{{ pending_bookings }}</h3>
+            <p>Booking yang belum dikonfirmasi.</p>
+        </div>
+        <div class="metric-card metric-success">
+            <p class="eyebrow">Membership aktif</p>
+            <h3>{{ active_memberships }}</h3>
+            <p>Paket membership yang sedang berjalan.</p>
+        </div>
+    </div>
+
+    <div class="overview-grid">
+        <div class="chart-panel">
+            <p class="eyebrow">Booking Status</p>
+            <div class="chart-bars">
+                {% set total_bookings = bookings|length or 1 %}
+                {% for status,label,color in [('pending','Pending','warning'), ('approved','Approved','primary'), ('rejected','Rejected','danger'), ('done','Done','success')] %}
+                    {% set count = booking_status_counts.get(status, 0) %}
+                    <div class="chart-row">
+                        <span>{{ label }}</span>
+                        <div class="chart-track">
+                            <div class="chart-bar {{ color }}" style="width: {{ (count / total_bookings) * 100 }}%"></div>
+                        </div>
+                        <strong>{{ count }}</strong>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="chart-panel secondary-panel">
+            <p class="eyebrow">Membership Breakdown</p>
+            <ul class="type-breakdown">
+                <li><strong>{{ membership_type_counts.get('membership', 0) }}</strong> Berlangganan</li>
+                <li><strong>{{ membership_type_counts.get('single', 0) }}</strong> Sekali Main</li>
+                <li><strong>{{ total_users }}</strong> Total Users</li>
+                <li><strong>Rp {{ '{:,.0f}'.format(revenue_total) }}</strong> Total Pendapatan</li>
+            </ul>
+            <p class="muted">Membership aktif dan performa pemesanan ringkas.</p>
+        </div>
+    </div>
+
+</section>
+
+<section class="card chat-card">
+    <header class="card-header">
+        <div>
+            <p class="eyebrow">Room Chat</p>
+            <h2>Interaksi Admin & Member</h2>
+            {% if selected_chat_user %}
+                <p class="muted">Room: {{ selected_chat_user.username }}</p>
+            {% else %}
+                <p class="muted">Pilih member untuk melihat percakapan.</p>
+            {% endif %}
+        </div>
+        <span class="badge">Admin chat</span>
+    </header>
+    <div class="chat-grid">
+        <div class="chat-list">
+            <form method="get" action="{{ url_for('admin_dashboard') }}" class="chat-filter-form">
+                <label>Pilih room member
+                    <select name="chat_user" id="chatUserSelect">
+                        <option value="">Pilih member...</option>
+                        {% for user in chat_users %}
+                            <option value="{{ user.id }}" {% if selected_chat_user and selected_chat_user.id == user.id %}selected{% endif %}>{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit" class="btn outline">Tampilkan</button>
+            </form>
+            <div id="adminChatMessages" class="chat-messages">
+                {% if chat_messages %}
+                    {% for msg in chat_messages %}
+                        <div class="chat-item {{ msg.sender_role }}">
+                            <div class="chat-meta">
+                                <strong>{% if msg.sender_role == 'admin' %}Admin{% else %}{{ msg.user.username }}{% endif %}</strong>
+                                <small>{{ msg.created_at.strftime('%d %b %H:%M') }}</small>
+                            </div>
+                            <p>{{ msg.content }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">Belum ada pesan chat.</div>
+                {% endif %}
+            </div>
+        </div>
+        <form id="adminChatForm" class="chat-form">
+            <label>Pilih Member Tujuan
+                <select id="chatUserTarget" name="user_id" required>
+                    <option value="">Pilih member...</option>
+                    {% for user in chat_users %}
+                        <option value="{{ user.id }}" {% if selected_chat_user and selected_chat_user.id == user.id %}selected{% endif %}>{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Pesan
+                <textarea id="adminChatContent" name="content" rows="4" required placeholder="Tulis pesan untuk member..."></textarea>
+            </label>
+            <button type="submit" class="btn full">Kirim Pesan</button>
+        </form>
+    </div>
+</section>
+
+<section class="calendar-card card">
+        <div class="calendar-header">
+            <div>
+                <p class="eyebrow">Kalender Bulanan</p>
+                <h2>{{ month_label }}</h2>
+            </div>
+            <span class="badge">Minimalis</span>
+        </div>
+        <div class="calendar-month-grid">
+            <div class="calendar-weekday">Sen</div>
+            <div class="calendar-weekday">Sel</div>
+            <div class="calendar-weekday">Rab</div>
+            <div class="calendar-weekday">Kam</div>
+            <div class="calendar-weekday">Jum</div>
+            <div class="calendar-weekday">Sab</div>
+            <div class="calendar-weekday">Min</div>
+
+            {% for week in month_calendar %}
+                {% for day in week %}
+                    <div class="calendar-cell {% if not day.is_current_month %}muted{% endif %} {% if day.is_today %}today{% endif %}">
+                        <div class="calendar-cell-header">
+                            <span class="cell-number">{{ day.day_number }}</span>
+                            {% if day.booking_count %}
+                                <span class="cell-count">{{ day.booking_count }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="calendar-cell-body">
+                            {% if day.booking_count %}
+                                {% for booking in day.bookings[:2] %}
+                                    <span class="cell-dot {{ booking.status }}"></span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="table-actions">
+        <label>
+            Cari booking
+            <input id="searchFilter" type="search" placeholder="Cari nama atau telepon..." />
+        </label>
+        <label>
+            Filter status
+            <select id="statusFilter">
+                <option value="all">Semua status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="done">Done</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="table-wrapper table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Tanggal</th>
+                    <th>Jam</th>
+                    <th>Kontak</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if bookings %}
+                    {% for booking in bookings %}
+                        <tr>
+                            <td>
+                                <strong>{{ booking.customer_name }}</strong><br>
+                                <small>{{ booking.notes or '-' }}</small>
+                            </td>
+                            <td>{{ booking.play_date.strftime('%d %b %Y') }}</td>
+                            <td>{{ booking.start_time.strftime('%H:%M') }} - {{ booking.end_time.strftime('%H:%M') }}</td>
+                            <td>{{ booking.phone }}</td>
+                            <td><span class="status {{ booking.status }}">{{ booking.status|title }}</span></td>
+                            <td>
+                                <form method="post" action="{{ url_for('update_booking_status', booking_id=booking.id) }}">
+                                    <select name="status">
+                                        {% for status in ['pending', 'approved', 'rejected', 'done'] %}
+                                            <option value="{{ status }}" {% if booking.status == status %}selected{% endif %}>{{ status|title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit">Simpan</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty">Belum ada booking.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card">
+    <header class="card-header">
+        <div>
+            <p class="eyebrow">Membership</p>
+            <h2>Terbaru</h2>
+        </div>
+        <a class="btn" href="{{ url_for('admin_memberships') }}">Kelola Membership</a>
+    </header>
+    <div class="timeline">
+        {% if latest_memberships %}
+            {% for membership in latest_memberships %}
+                <div class="timeline-item">
+                    <strong>{{ membership.user.username }}</strong>
+                    <p>{{ membership.package_name }} — {{ membership.start_date.strftime('%d %b') }} s/d {{ membership.end_date.strftime('%d %b %Y') }}</p>
+                    <span class="status {{ membership.status }}">{{ membership.status|title }}</span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">Belum ada membership.</p>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const statusFilter = document.getElementById('statusFilter');
+    const searchFilter = document.getElementById('searchFilter');
+    const rows = Array.from(document.querySelectorAll('tbody tr'));
+
+    function filterRows() {
+        const statusValue = statusFilter.value;
+        const searchValue = searchFilter.value.trim().toLowerCase();
+
+        rows.forEach(row => {
+            const statusText = row.querySelector('.status')?.textContent.trim().toLowerCase() || '';
+            const namePhone = (row.cells[0].innerText + ' ' + row.cells[3].innerText).toLowerCase();
+
+            const matchesStatus = statusValue === 'all' || statusText === statusValue;
+            const matchesSearch = !searchValue || namePhone.includes(searchValue);
+
+            row.style.display = matchesStatus && matchesSearch ? '' : 'none';
+        });
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterRows);
+    }
+    if (searchFilter) {
+        searchFilter.addEventListener('input', filterRows);
+    }
+
+    const adminChatForm = document.getElementById('adminChatForm');
+    const adminChatContent = document.getElementById('adminChatContent');
+    const chatUserTarget = document.getElementById('chatUserTarget');
+    const chatUserSelect = document.getElementById('chatUserSelect');
+    const chatMessagesContainer = document.getElementById('adminChatMessages');
+
+    function renderMessages(messages) {
+        if (!chatMessagesContainer) return;
+        chatMessagesContainer.innerHTML = '';
+
+        if (!messages.length) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty';
+            emptyState.textContent = 'Belum ada pesan chat.';
+            chatMessagesContainer.appendChild(emptyState);
+            return;
+        }
+
+        messages.forEach(msg => {
+            const item = document.createElement('div');
+            item.className = `chat-item ${msg.sender_role}`;
+
+            const meta = document.createElement('div');
+            meta.className = 'chat-meta';
+
+            const strong = document.createElement('strong');
+            strong.textContent = msg.sender_name;
+            const small = document.createElement('small');
+            small.textContent = msg.created_at;
+
+            meta.appendChild(strong);
+            meta.appendChild(small);
+
+            const content = document.createElement('p');
+            content.textContent = msg.content;
+
+            item.appendChild(meta);
+            item.appendChild(content);
+            chatMessagesContainer.appendChild(item);
+        });
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
+
+    async function fetchChatMessages() {
+        if (!chatUserSelect || !chatUserSelect.value) {
+            if (chatMessagesContainer) {
+                chatMessagesContainer.innerHTML = '<div class="empty">Pilih room untuk melihat pesan.</div>';
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/chat/messages?user_id=${encodeURIComponent(chatUserSelect.value)}`);
+            if (!response.ok) {
+                throw new Error('Gagal memuat pesan.');
+            }
+            const data = await response.json();
+            renderMessages(data.messages || []);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function sendChatMessage(event) {
+        event.preventDefault();
+        if (!adminChatForm || !chatUserTarget || !adminChatContent) return;
+
+        const userId = chatUserTarget.value;
+        const content = adminChatContent.value.trim();
+        if (!userId || !content) return;
+
+        try {
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: userId, content }),
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                adminChatContent.value = '';
+                await fetchChatMessages();
+            } else {
+                console.error(data.message || 'Gagal mengirim pesan.');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    if (chatUserSelect && chatUserTarget) {
+        chatUserTarget.value = chatUserSelect.value;
+        chatUserSelect.addEventListener('change', () => {
+            chatUserTarget.value = chatUserSelect.value;
+            fetchChatMessages();
+        });
+    }
+    if (adminChatForm) {
+        adminChatForm.addEventListener('submit', sendChatMessage);
+    }
+
+    fetchChatMessages();
+    setInterval(fetchChatMessages, 3000);
+});
+</script>
+{% endblock %}

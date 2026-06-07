@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}QR Membership - {{ membership.user.username }}{% endblock %}
+
+{% block content %}
+<section class="card">
+    <header class="card-header">
+        <div>
+            <p class="eyebrow">Validasi Membership</p>
+            <h2>{{ membership.user.username }} — {{ membership.package_name }}</h2>
+            <p class="muted">Periode {{ membership.start_date.strftime('%d %b %Y') }} - {{ membership.end_date.strftime('%d %b %Y') }}</p>
+        </div>
+        <span class="status {{ membership.status }}">{{ membership.status|title }}</span>
+    </header>
+    <div class="membership-body">
+        <div class="membership-info">
+            <h3>Jadwal Tetap</h3>
+            <ul>
+                {% for slot in membership.slots %}
+                    <li>{{ DAY_NAMES[slot.day_of_week] }} {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</li>
+                {% else %}
+                    <li class="empty">Slot belum ditambahkan.</li>
+                {% endfor %}
+            </ul>
+            {% if current_slot %}
+                <p class="status approved">Sedang dalam jadwal resmi sekarang.</p>
+            {% else %}
+                <p class="muted">Di luar jadwal.</p>
+            {% endif %}
+        </div>
+        <div class="membership-qr">
+            <img src="{{ url_for('static', filename='qrs/' + membership.qr_filename()) }}" alt="QR" />
+            <p class="muted">Token: {{ membership.token }}</p>
+        </div>
+    </div>
+    <form method="post" action="{{ url_for('membership_checkin', token=membership.token) }}">
+        <button class="btn" type="submit">Catat Kehadiran Sekarang</button>
+    </form>
+</section>
+{% endblock %}

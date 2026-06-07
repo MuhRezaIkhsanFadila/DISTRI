@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Detail Membership{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('admin_memberships') }}" class="muted" style="text-decoration: none; display: inline-block; margin-bottom: 15px;">← Kembali ke daftar</a>
+
+<section class="card" style="background: #1a1a1a; padding: 24px; border-radius: 8px; border: 1px solid #333; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+    <div>
+        <p class="eyebrow" style="color: #00adb5; margin: 0 0 5px 0;">Membership ID: #{{ membership.id }}</p>
+        <h2 style="margin: 0 0 10px 0; font-size: 1.6rem;">{{ membership.user.username }} — {{ membership.package_name }}</h2>
+        <p style="color: #aaa; margin: 0 0 15px 0;">📅 {{ membership.start_date.strftime('%d %b %Y') }} - {{ membership.end_date.strftime('%d %b %Y') }}</p>
+        
+        <div style="background: #222; padding: 15px; border-radius: 6px; border-left: 4px solid #00adb5; font-size: 0.95rem;">
+            <p style="margin: 0 0 5px 0;"><strong>Harga Kontrak:</strong> Rp {{ "{:,.0f}".format(membership.price) | replace(',', '.') }}</p>
+            <p style="margin: 0 0 5px 0;"><strong>Token Enkripsi:</strong> <code style="background: #333; padding: 2px 6px; border-radius: 4px; color: #ffeb3b;">{{ membership.token }}</code></p>
+            <p style="margin: 0;"><a href="{{ url_for('membership_verify', token=membership.token) }}" target="_blank" style="color: #00adb5; text-decoration: none;">🔗 Buka Halaman Verifikasi QR</a></p>
+        </div>
+    </div>
+    
+    <div style="background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <img src="{{ url_for('static', filename='qrs/' + membership.qr_filename()) }}" alt="QR" style="width: 130px; height: 130px; display: block;" />
+    </div>
+</section>
+
+<section style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start;">
+    
+    <article class="card" style="padding: 20px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+        <p class="eyebrow" style="color: #aaa;">Manual Input</p>
+        <h3 style="margin-top: 0;">Upload File Gambar QR</h3>
+        <form method="post" action="{{ url_for('upload_checkin') }}" enctype="multipart/form-data" class="grid-form">
+            <input type="hidden" name="membership_id" value="{{ membership.id }}" />
+            <label style="font-size: 0.85rem;">Pilih File Foto QR
+                <input type="file" name="qr_file" accept="image/*" required style="padding: 5px; color:#fff;" />
+            </label>
+            <button class="btn" type="submit" style="margin-top: 10px; width: 100%;">Proses Gambar</button>
+        </form>
+    </article>
+
+    <article class="card" style="padding: 20px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+        <p class="eyebrow" style="color: #aaa;">Jadwal Rutin</p>
+        <h3 style="margin-top: 0;">Tambah Kuota Slot</h3>
+        <form method="post" action="{{ url_for('add_membership_slot', membership_id=membership.id) }}" class="grid-form" style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="font-size: 0.85rem;">Hari
+                <select name="day_of_week" required style="padding: 8px; background: #222; border: 1px solid #444; color:#fff; border-radius:4px;">
+                    <option value="">-- pilih --</option>
+                    {% for name in DAY_NAMES %}
+                        <option value="{{ loop.index0 }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label style="font-size: 0.85rem;">Jam Mulai
+                <input type="time" name="start_time" required style="padding: 6px; background: #222; border: 1px solid #444; color:#fff; border-radius:4px;" />
+            </label>
+            <label style="font-size: 0.85rem;">Jam Selesai
+                <input type="time" name="end_time" required style="padding: 6px; background: #222; border: 1px solid #444; color:#fff; border-radius:4px;" />
+            </label>
+            <button class="btn" type="submit" style="margin-top: 5px;">Simpan Slot</button>
+        </form>
+        <ul class="timeline" style="margin-top: 15px; padding-left: 0; list-style: none;">
+            {% for slot in membership.slots %}
+                <li style="padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem;">
+                    🔹 {{ DAY_NAMES[slot.day_of_week] }} — {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}
+                </li>
+            {% else %}
+                <li class="empty" style="color: #555; text-align: center; padding-top: 10px;">Belum ada slot mingguan.</li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    <article class="card" style="padding: 20px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+        <p class="eyebrow" style="color: #aaa;">Presensi Live</p>
+        <h3 style="margin-top: 0;">{{ attendance_today|length }} Check-in Hari Ini</h3>
+        <ul class="timeline" style="padding-left: 0; list-style: none;">
+            {% for att in attendance_today %}
+                <li style="padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem; color: #2ecc71;">
+                    ⏱️ <strong>{{ att.check_in_time.strftime('%H:%M') }}</strong> — slot {{ DAY_NAMES[att.slot.day_of_week] }}
+                </li>
+            {% else %}
+                <li class="empty" style="color: #555; text-align: center; padding-top: 20px;">Belum ada check-in masuk hari ini.</li>
+            {% endfor %}
+        </ul>
+    </article>
+</section>
+{% endblock %}

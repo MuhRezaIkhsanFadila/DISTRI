@@ -1,0 +1,15 @@
+<svg width="140" height="50" viewBox="0 0 140 50" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Ikon TML Arena</title>
+  <desc id="desc">Ikon lapangan futsal tanpa teks</desc>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14f1ff" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="120" height="40" rx="14" fill="#061221" stroke="url(#grad)" stroke-width="3" />
+  <line x1="65" y1="5" x2="65" y2="45" stroke="url(#grad)" stroke-width="2" stroke-dasharray="6 5" />
+  <circle cx="65" cy="25" r="10" fill="none" stroke="#38bdf8" stroke-width="2" />
+  <circle cx="25" cy="25" r="5" fill="#38bdf8" />
+  <circle cx="105" cy="25" r="5" fill="#38bdf8" />
+</svg>

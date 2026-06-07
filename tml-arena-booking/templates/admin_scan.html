@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Scan QR - Admin Panel{% endblock %}
+
+{% block content %}
+<section class="card" style="max-width: 600px; margin: 0 auto;">
+    <header class="card-header">
+        <div>
+            <p class="eyebrow">Kios Absensi Admin</p>
+            <h2>Scan Kartu Membership</h2>
+            <p class="muted">Arahkan kode QR pada kartu member ke webcam laptop.</p>
+        </div>
+    </header>
+    
+    <div style="width: 100%; display: flex; justify-content: center; background: #1a1a1a; padding: 10px; border-radius: 8px; border: 2px dashed #444;">
+        <div id="reader" style="width: 100%; max-width: 450px; min-height: 300px;"></div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 15px;">
+        <p id="scan-status" style="font-weight: bold; padding: 12px; border-radius: 6px; background: #2a2a2a; color: #ccc; margin: 0;">
+            Menghubungkan ke Webcam...
+        </p>
+    </div>
+</section>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const statusEl = document.getElementById('scan-status');
+const reader = new Html5Qrcode("reader");
+
+function updateStatus(text, bgColor, textColor = '#fff') {
+    statusEl.textContent = text;
+    statusEl.style.backgroundColor = bgColor;
+    statusEl.style.color = textColor;
+}
+
+function sendPayload(payload) {
+    updateStatus('⏳ Memvalidasi QR...', '#e67e22');
+    fetch("{{ url_for('api_checkin') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload })
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(({ status, body }) => {
+        if (status === 200) {
+            updateStatus('✅ ' + body.message, '#2ecc71');
+        } else {
+            updateStatus('❌ ' + (body.message || 'Gagal memproses QR.'), '#e74c3c');
+        }
+    })
+    .catch(() => updateStatus('⚠️ Terjadi kesalahan jaringan ke server Flask.', '#e74c3c'));
+}
+
+// Mengambil daftar hardware kamera aktif di Laptop
+Html5Qrcode.getCameras().then((devices) => {
+    if (!devices || devices.length === 0) {
+        updateStatus('❌ Kamera tidak ditemukan di laptop ini.', '#e74c3c');
+        return;
+    }
+    
+    // Langsung tembak ID kamera pertama yang terdeteksi di OS Laptop
+    const activeCameraId = devices[0].id;
+
+    reader.start(
+        activeCameraId, 
+        { 
+            fps: 10, 
+            qrbox: { width: 220, height: 220 } 
+        },
+        (decodedText) => {
+            updateStatus('🔍 QR Terdeteksi! Memproses...', '#3498db');
+            reader.pause(true); // Pause scanner agar tidak melakukan double request
+            sendPayload(decodedText);
+            
+            // Hidupkan kembali scanner otomatis setelah jeda 3 detik
+            setTimeout(() => {
+                reader.resume();
+                updateStatus('📷 SIAP! Silakan scan kartu member...', '#27ae60');
+            }, 3000);
+        },
+        (errorMessage) => {
+            // Di-ignore agar tidak membanjiri log pencarian frame kamera
+        }
+    ).then(() => {
+        updateStatus('📷 SIAP! Kamera aktif, silakan scan kartu member.', '#27ae60');
+    }).catch((err) => {
+        console.error("Gagal start kamera:", err);
+        updateStatus('❌ Gagal membuka stream webcam.', '#e74c3c');
+    });
+
+}).catch((err) => {
+    console.error("Gagal deteksi kamera:", err);
+    updateStatus('❌ Tidak bisa mengakses hardware kamera.', '#e74c3c');
+});
+</script>
+{% endblock %}

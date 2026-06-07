@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Membership - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-grid">
+    <article class="card admin-panel">
+        <p class="eyebrow">Tambah Baru</p>
+        <h2>Buat Kontrak</h2>
+
+        <form method="post" class="grid-form admin-form">
+            <label>Tipe Membership
+                <select name="membership_type" id="membership_type">
+                    <option value="membership">Berlangganan</option>
+                    <option value="single">Sekali Main</option>
+                </select>
+            </label>
+            <label>Pilih User
+                <select name="user_id" required>
+                    <option value="">-- pilih --</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }} ({{ user.role }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Nama Paket
+                <input type="text" name="package_name" placeholder="Member 2x/Minggu" required />
+            </label>
+            <label>Biaya (Rp)
+                <input type="number" name="price" min="0" step="10000" value="0" />
+            </label>
+            <label>Tanggal Mulai
+                <input type="date" name="start_date" required />
+            </label>
+            <label>Tanggal Berakhir
+                <input type="date" name="end_date" required />
+            </label>
+            <button type="submit" class="btn full-row">Buat Paket</button>
+        </form>
+    </article>
+
+    <article class="card admin-panel">
+        <p class="eyebrow">Database</p>
+        <h2>Daftar Kontrak Aktif</h2>
+        <div class="table-wrapper admin-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Paket</th>
+                        <th>Masa Berlaku</th>
+                        <th>Slot</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for membership in memberships %}
+                        <tr>
+                            <td><strong>{{ membership.user.username }}</strong></td>
+                            <td>{{ membership.package_name }}</td>
+                            <td>{{ membership.start_date.strftime('%d %b %Y') }} – {{ membership.end_date.strftime('%d %b %Y') }}</td>
+                            <td><span class="pill">{{ membership.slots|length }}</span></td>
+                            <td><span class="status {{ membership.status }}">{{ membership.status|title }}</span></td>
+                            <td><a href="{{ url_for('admin_membership_detail', membership_id=membership.id) }}" class="link-button">Detail →</a></td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="empty">Belum ada data membership.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const typeSelect = document.getElementById('membership_type');
+    const startLabel = document.querySelector('input[name=\"start_date\"]').closest('label');
+    const endLabel = document.querySelector('input[name=\"end_date\"]').closest('label');
+
+    function updateVisibility() {
+        if (typeSelect.value === 'single') {
+            startLabel.style.display = 'none';
+            endLabel.style.display = 'none';
+        } else {
+            startLabel.style.display = '';
+            endLabel.style.display = '';
+        }
+    }
+    typeSelect.addEventListener('change', updateVisibility);
+    updateVisibility();
+});
+</script>
+{% endblock %}

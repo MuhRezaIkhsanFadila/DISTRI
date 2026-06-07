@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Beranda - Pembookingan Lapangan Futsal TML Arena{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Pembookingan Lapangan Futsal TML Arena</h1>
+        <p>Sistem sederhana untuk mengelola jadwal lapangan, pesanan pelanggan, dan panel admin terpisah.</p>
+        {% if not current_user.is_authenticated %}
+            <a class="btn" href="{{ url_for('login') }}">Masuk ke Sistem</a>
+        {% else %}
+            <a class="btn" href="{{ url_for('dashboard') }}">Buka Dashboard</a>
+        {% endif %}
+    </div>
+    <div class="hero-image full">
+        <img src="{{ url_for('static', filename='field.png') }}" alt="Lapangan futsal modern" />
+    </div>
+</section>
+
+<section class="features">
+    <article>
+        <h3>Panel Admin</h3>
+        <p>Pantau seluruh booking, ubah status, dan pastikan jadwal lapangan selalu rapi.</p>
+    </article>
+    <article>
+        <h3>Panel User</h3>
+        <p>Member bisa membuat permintaan booking dan memantau status pesanan mereka sendiri.</p>
+    </article>
+    <article>
+        <h3>Login Aman</h3>
+        <p>Setiap pengguna memiliki kredensial, dengan admin default yang dapat Anda ganti sewaktu-waktu.</p>
+    </article>
+</section>
+
+<section class="team card">
+    <p class="eyebrow">Struktur Pengelola</p>
+    <div class="team-grid">
+        <div>
+            <h4>CEO</h4>
+            <p>M. Reza Ikhsan Fadila</p>
+        </div>
+        <div>
+            <h4>General Manager</h4>
+            <p>Daffa Surya Atmaja</p>
+        </div>
+        <div>
+            <h4>Head Manager</h4>
+            <p>M. Rizqon</p>
+        </div>
+        <div>
+            <h4>Pengelola Server</h4>
+            <p>Nur M Arumi</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

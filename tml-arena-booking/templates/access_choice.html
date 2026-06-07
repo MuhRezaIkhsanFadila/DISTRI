@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Pilih Akses - TML Arena{% endblock %}
+
+{% block content %}
+<section class="card choice-card">
+    <div class="choice-header">
+        <p class="eyebrow">Pilih Akses</p>
+        <h1>Selamat datang, {{ current_user.username }}</h1>
+        <p class="muted">Pilih mode penggunaan yang sesuai: booking visit sekarang atau aktifkan membership berbayar.</p>
+    </div>
+    <div class="choice-grid">
+        <article class="panel-card choice-panel">
+            <h2>Visitor</h2>
+            <p>Pesan lapangan sekali main tanpa membership. Cocok jika Anda belum siap berlangganan.</p>
+            <a href="{{ url_for('visitor_dashboard') }}" class="btn full">Lanjutkan sebagai Visitor</a>
+        </article>
+        <article class="panel-card choice-panel member-choice">
+            <h2>Member Berbayar</h2>
+            <p>Bayar paket membership untuk akses lebih murah, fleksibel, dan prioritas slot.</p>
+            <a href="{{ url_for('membership_offer') }}" class="btn full outline">Pilih Paket Membership</a>
+        </article>
+    </div>
+</section>
+{% endblock %}
