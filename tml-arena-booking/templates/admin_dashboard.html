@@ -269,12 +269,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = Array.from(document.querySelectorAll('tbody tr'));
 
     function filterRows() {
-        const statusValue = statusFilter.value;
-        const searchValue = searchFilter.value.trim().toLowerCase();
+        const statusValue = statusFilter ? statusFilter.value : 'all';
+        const searchValue = searchFilter ? searchFilter.value.trim().toLowerCase() : '';
 
         rows.forEach(row => {
+            // skip placeholder/empty rows that use colspan
+            if (!row.cells || row.cells.length < 4) {
+                row.style.display = (!searchValue && statusValue === 'all') ? '' : 'none';
+                return;
+            }
+
             const statusText = row.querySelector('.status')?.textContent.trim().toLowerCase() || '';
-            const namePhone = (row.cells[0].innerText + ' ' + row.cells[3].innerText).toLowerCase();
+            const namePhone = ((row.cells[0].innerText || '') + ' ' + (row.cells[3].innerText || '')).toLowerCase();
 
             const matchesStatus = statusValue === 'all' || statusText === statusValue;
             const matchesSearch = !searchValue || namePhone.includes(searchValue);
@@ -357,9 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         if (!adminChatForm || !chatUserTarget || !adminChatContent) return;
 
+        const submitBtn = adminChatForm.querySelector('button[type="submit"]');
         const userId = chatUserTarget.value;
         const content = adminChatContent.value.trim();
         if (!userId || !content) return;
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading');
 
         try {
             const response = await fetch('/api/chat/send', {
@@ -374,10 +384,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 adminChatContent.value = '';
                 await fetchChatMessages();
             } else {
-                console.error(data.message || 'Gagal mengirim pesan.');
+                alert(data.message || 'Gagal mengirim pesan.');
             }
         } catch (error) {
             console.error(error);
+            alert('Terjadi kesalahan saat mengirim pesan.');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+            }
         }
     }
 
